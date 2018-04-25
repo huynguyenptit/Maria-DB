@@ -33,7 +33,7 @@ Cho bảng `Presidents` nhìn giống như này:
 
 ("Andrew Johnson" đã được chọn cho bài học này vì nó trùng lặp.)
 
-Các) chỉ mục nào sẽ là tốt nhất cho câu hỏi này? Cụ thể hơn, cái này là tốt nhất
+Các chỉ mục nào sẽ là tốt nhất cho câu hỏi này? Cụ thể hơn, cái này là tốt nhất
     
     
         SELECT  term
@@ -99,7 +99,7 @@ Trước tiên, hãy mô tả cách InnoDB lưu trữ và sử dụng các chỉ
 * Để đơn giản, chúng ta có thể đếm từng tra cứu BTree dưới dạng 1 đơn vị công việc và bỏ qua 
 các lần quét cho các mục liên tiếp. Điều này xấp xỉ số lần truy cập cho một bảng lớn trong một hệ thống đang hoạt động. 
 
-Đối với MyISAM, KHÓA CHÍNH không được lưu trữ với dữ liệu, vì vậy hãy nghĩ về nó như là một khóa phụ (quá đơn giản).
+Đối với MyISAM, KHÓA CHÍNH không được lưu trữ với dữ liệu, vì vậy hãy nghĩ về nó như là một khóa thứ cập (quá đơn giản).
 
 ## INDEX(first_name), INDEX(last_name)
 
@@ -112,7 +112,8 @@ MySQL hiếm khi sử dụng nhiều hơn một chỉ mục tại một thời �
 Dưới đây là các bước để thực hiện SELECT: 1. Sử dụng INDEX (last_name), tìm 2 mục chỉ mục với last_name = 'Johnson'. 2\. 
 Nhận KHÓA CHÍNH (được thêm ngầm vào mỗi chỉ mục phụ trong InnoDB); nhận được (17, 36) 
 3. Tiếp cận dữ liệu bằng cách sử dụng seq = (17, 36) để lấy các hàng cho Andrew Johnson và Lyndon B. Johnson. 
-4. Sử dụng phần còn lại của mệnh đề WHERE lọc tất cả trừ hàng mong muốn. 5. Cung cấp câu trả lời (1865-1869).
+4. Sử dụng phần còn lại của mệnh đề WHERE lọc tất cả trừ hàng mong muốn.
+5. Cung cấp câu trả lời (1865-1869).
     
     
     mysql>  EXPLAIN  SELECT  term
@@ -132,7 +133,7 @@ Nhận KHÓA CHÍNH (được thêm ngầm vào mỗi chỉ mục phụ trong In
 
 ## "Index Merge Intersect"
 
-OK, vì vậy bạn thực sự thông minh và quyết định rằng MySQL nên đủ thông minh để sử dụng cả hai chỉ mục tên để nhận được câu trả lời. 
+OK, vì vậy bạn thực sự thông minh và quyết định rằng MySQL có đủ đủ thông minh để sử dụng cả hai tên chỉ mục để nhận được câu trả lời. 
 Điều này được gọi là  "Intersect". 1\. Sử dụng INDEX (last_name), tìm 2 mục chỉ mục với last_name = 'Johnson'; nhận được (7, 17)
  2\. Sử dụng INDEX (first_name), tìm 2 mục chỉ mục với first_name = 'Andrew'; nhận được (17, 36) 
 3\. "And" hai danh sách cùng nhau (7,17) & (17,36) = (17) 4\. Tiếp cận dữ liệu bằng cách sử dụng seq = (17) để lấy hàng cho Andrew Johnson. 5. Cung cấp câu trả lời (1865-1869).
@@ -176,11 +177,11 @@ The EXPLAIN không cung cấp thông tin chi tiết về số lượng hàng đ�
             Extra: Using where
     
 
-## "Covering": INDEX(last_name, first_name, term)
+## "Bao đóng": INDEX(last_name, first_name, term)
 
-Sự ngạc nhiên! Chúng tôi thực sự có thể làm tốt hơn một chút. 
-1 chỉ mục "Bao trùm" là 1 thứ mà _tất cả_ các trường của lệnh SELECT có thể được tìm thấy trong chỉ mục.  
-Nó có 1 điểm cộng thêm là không phải tiếp cận "dữ liệu"để hoàn thành công việc. 1. Tìm kiếm chỉ mục trong BTre để lấy chỉ mục chính xác của dọng Johnson+Andrew, được chuỗi =(17). 2. Xuất kết quả (1865-1869). "Dữ liệu" BTree không được động tới, đây là sự cỉa tiến so với "trộn".
+Ngạc nhiên chưa! Chúng tôi thực sự có thể làm tốt hơn một chút. 
+1 chỉ mục "Bao đóng" là 1 thứ mà _tất cả_ các trường của lệnh SELECT có thể được tìm thấy trong chỉ mục.  
+Nó có 1 điểm cộng thêm là không phải tiếp cận "dữ liệu"để hoàn thành công việc. 1. Tìm kiếm chỉ mục trong BTree để lấy chỉ mục chính xác của dọng Johnson+Andrew, được chuỗi =(17). 2. Xuất kết quả (1865-1869). "Dữ liệu" BTree không được động tới, đây là sự cải tiến so với "hợp nhất".
     
     
         ... ADD INDEX covering(last_name, first_name, term);
@@ -197,11 +198,11 @@ Nó có 1 điểm cộng thêm là không phải tiếp cận "dữ liệu"để
             Extra: Using where; Using index   <-- Note
     
 
-Mọi thứ đều tương tự như sử dụng "hòa hợp", ngoại trừ việc bổ sung "Sử dụng chỉ mục".
+Mọi thứ đều tương tự như sử dụng "hợp nhất", ngoại trừ việc bổ sung "Sử dụng chỉ mục".
 
 ## Biến thể
 
-* Điều gì sẽ xảy ra nếu bạn xáo trộn các trường trong mệnh đề WHERE? Trả lời: Thứ tự của những thứ ANDed không quan trọng. 
+* Điều gì sẽ xảy ra nếu bạn xáo trộn các trường trong mệnh đề WHERE? Trả lời: Thứ tự của những thứ đã được AND với nhau không quan trọng. 
 * Điều gì sẽ xảy ra nếu bạn xáo trộn các trường trong INDEX? Trả lời: Nó có thể tạo nên sự khác biệt lớn. Xem thêm sau một phút nữa. 
 * Sẽ thế nào nếu có thêm trường vào cuối cùng? Câu trả lời: 1 chút ảnh hưởng nhỏ, có thể rất nhiều cái tốt ( ví dụ, "bao trùm"). 
 * Không cần thiết? Đó là, nếu bạn có cả hai thứ này: INDEX (a), INDEX (a, b)? Trả lời: thừa chi phí một cái gì đó trên INSERTs; nó hiếm khi hữu ích cho các SELECT. 
